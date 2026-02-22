@@ -3,127 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fun House: Vibrate Edition</title>
+    <title>Fun House: Floating Privacy</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth: #34B7F1; --dare: #e91e63; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--wa-dark); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box; }
-        .card { background: white; padding: 20px; border-radius: 25px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
-        .lobby-info { background: #f1f8ff; padding: 12px; border-radius: 15px; margin-bottom: 15px; border: 2px solid #007bff; }
-        .id-badge { font-size: 1.4rem; font-weight: 900; color: #007bff; letter-spacing: 2px; }
-        .game-area { position: relative; width: 260px; height: 260px; margin: 20px auto; border-radius: 50%; border: 8px solid #333; background: #fff; }
-        #wheel { width: 100%; height: 100%; border-radius: 50%; position: absolute; transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); }
-        #bottle { position: absolute; top: 50%; left: 50%; width: 16px; height: 150px; background: #222; margin-top: -75px; margin-left: -8px; border-radius: 10px; z-index: 10; pointer-events: none; }
-        #bottle::after { content: '🍾'; position: absolute; top: -15px; left: -10px; font-size: 34px; transform: rotate(-45deg); }
-        .name-label { position: absolute; font-weight: bold; font-size: 11px; z-index: 15; background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; transform: translate(-50%, -50%); }
-        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; padding: 16px; font-size: 1rem; }
-        #spinBtn { background: var(--wa-green); color: white; display: none; box-shadow: 0 5px 0 #128C7E; }
-        #resultBox { margin-top: 15px; padding: 15px; border-radius: 15px; background: #fffde7; display: none; border: 2px solid #fbc02d; animation: pop 0.4s ease; }
-        .type-pill { display: inline-block; padding: 4px 12px; border-radius: 10px; color: white; font-size: 0.8rem; margin-bottom: 5px; }
-        @keyframes pop { from { transform: scale(0.8); opacity:0; } to { transform: scale(1); opacity:1; } }
+        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth: #34B7F1; --dare: #ff4757; --gold: #ffa502; }
+        * { -webkit-user-select: none; user-select: none; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; color: white; overflow: hidden; }
+        
+        /* Draggable Chat Bubble */
+        #chatBubble {
+            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+            background: var(--gold); border-radius: 50%; display: flex;
+            justify-content: center; align-items: center; font-size: 30px;
+            z-index: 999; cursor: grab; box-shadow: 0 4px 15px rgba(255,165,2,0.4);
+            touch-action: none;
+        }
+
+        /* Chat Window (Hidden by Default) */
+        #chatPanel {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; display: none;
+            flex-direction: column; padding: 20px;
+        }
+
+        .card { background: #1a1a1a; padding: 20px; border-radius: 30px; width: 100%; max-width: 420px; text-align: center; border: 1px solid #333; }
+        .game-box { position: relative; width: 240px; height: 240px; margin: 15px auto; border-radius: 50%; border: 6px solid #444; background: #fff; }
+        #bottle { 
+            position: absolute; top: 50%; left: 50%; width: 22px; height: 140px; 
+            background: #111; margin-top: -70px; margin-left: -11px; border-radius: 15px; 
+            transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); z-index: 10;
+        }
+        #bottle::after { content: '🍾'; position: absolute; top: -15px; left: -10px; font-size: 40px; transform: rotate(-45deg); }
+        .name-label { position: absolute; font-weight: 900; font-size: 10px; color: #000; transform: translate(-50%, -50%); width: 60px; }
+
+        .hidden-task { background: #000; color: #000; padding: 10px; border-radius: 10px; cursor: pointer; border: 1px dashed var(--gold); }
+        .hidden-task:active { background: transparent; color: #000; }
+
+        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; padding: 14px; }
+        #spinBtn { background: var(--dare); color: white; display: none; }
+        #resultBox { margin-top: 10px; padding: 20px; border-radius: 20px; background: #fff; color: #000; display: none; border: 5px solid var(--gold); }
+        
+        /* Chat UI Elements */
+        #msgContainer { flex: 1; overflow-y: auto; margin-bottom: 10px; padding: 10px; }
+        .chat-row { margin-bottom: 8px; font-size: 0.9rem; }
+        #chatPanel input { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #333; color: white; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div id="setupView">
-        <h2 style="color:var(--wa-dark)">Fun House Live</h2>
-        <button class="btn" style="background:var(--truth); color:white;" onclick="startHost()">HOST GAME</button>
-        <button class="btn" style="background:#333; color:white;" onclick="startPlayer()">JOIN GAME</button>
+<div class="card" id="mainCard">
+    <div id="status" style="font-size: 0.8rem; color: var(--gold); margin-bottom: 10px;">VIRTUAL PRIVACY MODE</div>
+    
+    <div id="setupControls">
+        <button class="btn" style="background:var(--gold); color:black;" onclick="initHost()">🚀 START AS HOST</button>
     </div>
 
-    <div id="mainGame" style="display:none;">
-        <div class="lobby-info">
-            <div id="connMsg" style="font-size:0.8rem;">INITIALIZING...</div>
-            <div id="idCode" class="id-badge">----</div>
+    <div id="gameUI" style="display:none;">
+        <div id="hostOnly" style="display:none;">
+            <button class="btn" style="background:#333; color:white;" onclick="addPlayer()">➕ ADD PLAYER</button>
+            <button class="btn" style="background:var(--wa-green); color:white;" onclick="sendInvite()">🔗 WHATSAPP INVITE</button>
+            <button class="btn" id="spinBtn" onclick="triggerSyncSpin()">SPIN BOTTLE 🍾</button>
         </div>
-        <button class="btn" id="addBtn" style="background:#333; color:white;" onclick="hAdd()">➕ ADD PLAYER</button>
-        <button class="btn" id="spinBtn" onclick="bSpin()">SPIN FOR ALL 🍾</button>
-        <div class="game-area">
-            <div id="wheel"></div>
-            <div id="bottle"></div>
-        </div>
+
+        <div class="game-box" id="arena"><div id="bottle"></div></div>
+
         <div id="resultBox">
-            <div id="tType" class="type-pill"></div>
-            <div id="vName" style="font-size: 1.6rem; font-weight: 900; color: #c62828;"></div>
-            <p id="tText" style="font-style: italic; font-weight: bold; margin: 10px 0;"></p>
+            <b id="vName" style="font-size:1.4rem;"></b><br>
+            <p style="font-size:0.7rem; color:#666; margin:5px 0;">(HOLD TO REVEAL)</p>
+            <div class="hidden-task" id="vTask">...</div>
         </div>
     </div>
 </div>
 
-<script>
-    let peer, conn, players = [], rotation = 0, isHost = false, myName = "";
-    const conns = [];
-    const ts = ["Secret crush?", "Ever lied to the group?", "Biggest ick?", "Best looking here?"];
-    const ds = ["Sing a song.", "Post a selfie.", "Text an ex.", "Show browser history."];
+<div id="chatBubble">💬</div>
 
-    function startHost() {
-        isHost = true; myName = prompt("Your Name:");
-        if(!myName) return; players.push(myName);
+<div id="chatPanel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="color:var(--gold); margin:0;">Group Chat</h2>
+        <button onclick="toggleChat()" style="background:none; border:none; color:white; font-size:2rem;">&times;</button>
+    </div>
+    <div id="msgContainer"></div>
+    <input type="text" id="chatInput" placeholder="Send a message...">
+    <button class="btn" style="background:var(--truth); color:white;" onclick="sendChat()">SEND MESSAGE</button>
+</div>
+
+<script>
+    let peer, conn, players = [], isHost = false, rotation = 0, myName = "";
+    const conns = [];
+
+    // --- DRAGGABLE BUBBLE LOGIC ---
+    const bubble = document.getElementById('chatBubble');
+    let offsetX, offsetY;
+    bubble.addEventListener('touchstart', (e) => {
+        offsetX = e.touches[0].clientX - bubble.offsetLeft;
+        offsetY = e.touches[0].clientY - bubble.offsetTop;
+    });
+    bubble.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        bubble.style.left = (e.touches[0].clientX - offsetX) + 'px';
+        bubble.style.top = (e.touches[0].clientY - offsetY) + 'px';
+        bubble.style.bottom = 'auto'; bubble.style.right = 'auto';
+    });
+    bubble.addEventListener('click', toggleChat);
+
+    function toggleChat() {
+        const p = document.getElementById('chatPanel');
+        p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
+    }
+
+    // --- 18+ TASKS ---
+    const tasks = [
+        "Open your Private Browser tabs and show us what's there.",
+        "DM your most recent Instagram like and say 'You looked good today.'",
+        "Record a voice note of your 'O-Face' sound and send it to the host.",
+        "Change your WhatsApp status to 'I am so wet/hard' for 2 mins."
+    ];
+
+    function initHost() {
+        myName = prompt("Host Name:") || "Host"; isHost = true;
         const id = Math.floor(1000 + Math.random() * 9000).toString();
-        peer = new Peer('fun-' + id);
-        peer.on('open', () => { showG(id, "Hosting: Give code to friends!"); document.getElementById('spinBtn').style.display='block'; draw(); });
-        peer.on('connection', (c) => { 
-            conns.push(c); 
-            c.on('data', (d) => { if(d.type==='join'){ players.push(d.name); draw(); conns.forEach(cc=>cc.send({type:'sync', p:players})); }});
-            c.on('open', () => c.send({type:'sync', p:players}));
+        peer = new Peer('fh-' + id);
+        peer.on('open', () => { players.push(myName); setupUI(id); });
+        peer.on('connection', (c) => {
+            conns.push(c);
+            if(navigator.vibrate) navigator.vibrate(200); // Vibrate on Join
+            c.on('data', (d) => {
+                if(d.type === 'join') { players.push(d.n); bcast({type:'sync', p:players}); draw(); }
+                if(d.type === 'chat') bcast(d);
+            });
         });
     }
 
-    function startPlayer() {
-        myName = prompt("Your Name:"); if(!myName) return;
-        const id = prompt("Enter 4-Digit ID:");
+    function initPlayer(id) {
+        myName = prompt("Player Name:") || "Guest";
         peer = new Peer();
         peer.on('open', () => {
-            conn = peer.connect('fun-' + id);
-            conn.on('open', () => { showG(id, "Connected! Wait for Host."); conn.send({type:'join', name:myName}); document.getElementById('addBtn').style.display='none'; });
-            conn.on('data', (d) => { if(d.type==='sync'){ players=d.p; draw(); } if(d.type==='spin'){ rotation=d.rot; runS(d); }});
+            conn = peer.connect('fh-' + id);
+            conn.on('open', () => { setupUI(id); conn.send({type:'join', n:myName}); });
+            conn.on('data', (d) => {
+                if(d.type === 'sync') { players = d.p; draw(); }
+                if(d.type === 'spin') runSpin(d);
+                if(d.type === 'chat') addMsg(d.u, d.m);
+            });
         });
     }
 
-    function showG(id, m) { document.getElementById('setupView').style.display='none'; document.getElementById('mainGame').style.display='block'; document.getElementById('idCode').innerText=id; document.getElementById('connMsg').innerText=m; }
-    function hAdd() { const n=prompt("Name:"); if(n){ players.push(n); draw(); conns.forEach(c=>c.send({type:'sync', p:players})); }}
-
-    function draw() {
-        const w = document.getElementById('wheel'); w.innerHTML = '';
-        const step = 360 / players.length;
-        players.forEach((p, i) => {
-            const a = (i * step + step/2) * (Math.PI/180);
-            const x = 130 + 85 * Math.cos(a - Math.PI/2);
-            const y = 130 + 85 * Math.sin(a - Math.PI/2);
-            const l = document.createElement('div'); l.className='name-label'; l.style.left=x+'px'; l.style.top=y+'px'; l.innerText=p;
-            w.appendChild(l);
-        });
-        w.style.background = `conic-gradient(${players.map((_,i)=>`${i%2===0?'#fff':'#f2f2f2'} ${i*step}deg ${(i+1)*step}deg`).join(',')})`;
+    function setupUI(id) {
+        document.getElementById('setupControls').style.display='none';
+        document.getElementById('gameUI').style.display='block';
+        document.getElementById('status').innerText = "LIVE ROOM ID: " + id;
+        if(isHost) document.getElementById('hostOnly').style.display = 'block';
     }
 
-    function bSpin() {
-        const idx = Math.floor(Math.random()*players.length);
-        const isT = Math.random()>0.5;
-        const task = (isT?ts:ds)[Math.floor(Math.random()*4)];
+    function triggerSyncSpin() {
+        const idx = Math.floor(Math.random() * players.length);
+        const task = tasks[Math.floor(Math.random() * tasks.length)];
         const step = 360/players.length;
-        const newR = rotation + 1800 + (idx*step + step/2);
-        const data = { type:'spin', rot:newR, v:players[idx], t:task, isT:isT };
-        conns.forEach(c => c.send(data)); runS(data);
+        rotation += 1800 + (idx*step) + (360 - (rotation % 360));
+        const d = { type:'spin', rot:rotation, idx:idx, t:task };
+        bcast(d); runSpin(d);
     }
 
-    function runS(d) {
+    function runSpin(d) {
         document.getElementById('resultBox').style.display='none';
-        document.getElementById('wheel').style.transform = `rotate(-${d.rot}deg)`;
+        document.getElementById('bottle').style.transform = `rotate(${d.rot}deg)`;
         setTimeout(() => {
-            document.getElementById('vName').innerText = d.v;
-            document.getElementById('tText').innerText = `"${d.t}"`;
-            const p = document.getElementById('tType');
-            p.innerText = d.isT ? "TRUTH" : "DARE";
-            p.style.background = d.isT ? "var(--truth)" : "var(--dare)";
+            document.getElementById('vName').innerText = players[d.idx];
+            document.getElementById('vTask').innerText = d.t;
             document.getElementById('resultBox').style.display='block';
-            rotation = d.rot;
-            // VIBRATE IF IT IS YOU
-            if (d.v.toLowerCase() === myName.toLowerCase()) {
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            }
+            if(players[d.idx].toLowerCase() === myName.toLowerCase()) navigator.vibrate([400, 100, 400]);
         }, 4000);
     }
+
+    function sendChat() {
+        const i = document.getElementById('chatInput'); if(!i.value) return;
+        const d = { type:'chat', u:myName, m:i.value };
+        if(isHost) bcast(d); else conn.send(d);
+        addMsg(myName, i.value); i.value = "";
+    }
+
+    function addMsg(u, m) {
+        const c = document.getElementById('msgContainer');
+        c.innerHTML += `<div class="chat-row"><b style="color:var(--gold)">${u}:</b> ${m}</div>`;
+        c.scrollTop = c.scrollHeight;
+    }
+
+    function bcast(d) {
+        if(isHost) { conns.forEach(c => c.send(d)); if(d.type==='chat') addMsg(d.u, d.m); }
+    }
+
+    function draw() {
+        const arena = document.getElementById('arena');
+        document.querySelectorAll('.name-label').forEach(e=>e.remove());
+        const step = 360 / players.length;
+        players.forEach((n, i) => {
+            const a = (i * step) * (Math.PI/180);
+            const x = 120 + 90 * Math.cos(a - Math.PI/2);
+            const y = 120 + 90 * Math.sin(a - Math.PI/2);
+            const l = document.createElement('div'); l.className='name-label';
+            l.style.left=x+'px'; l.style.top=y+'px'; l.innerText=n;
+            arena.appendChild(l);
+        });
+        if(isHost && players.length >= 2) document.getElementById('spinBtn').style.display='block';
+    }
+
+    function sendInvite() {
+        const link = window.location.origin + window.location.pathname + "?join=" + peer.id.replace('fh-','');
+        window.open(`https://wa.me/?text=${encodeURIComponent("*JOIN THE LIVE 🔞 SESSION*\n" + link)}`);
+    }
+
+    window.onload = () => { if(new URLSearchParams(window.location.search).get('join')) initPlayer(new URLSearchParams(window.location.search).get('join')); };
 </script>
 </body>
 </html>
