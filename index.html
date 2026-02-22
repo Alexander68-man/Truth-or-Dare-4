@@ -6,57 +6,27 @@
     <title>Fun House: Floating Privacy</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth: #34B7F1; --dare: #ff4757; --gold: #ffa502; }
+        :root { --wa-green: #25D366; --truth: #34B7F1; --dare: #ff4757; --gold: #ffa502; }
         * { -webkit-user-select: none; user-select: none; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; color: white; overflow: hidden; }
         
         /* Panic Overlay */
-        #panicOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #ffffff; color: #333; z-index: 10000; display: none;
-            padding: 40px; font-family: 'Times New Roman', serif; text-align: left;
-        }
+        #panicOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; color: #333; z-index: 10000; display: none; padding: 40px; font-family: 'Times New Roman', serif; text-align: left; }
 
-        /* Draggable Chat Bubble */
-        #chatBubble {
-            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
-            background: var(--gold); border-radius: 50%; display: flex;
-            justify-content: center; align-items: center; font-size: 30px;
-            z-index: 999; cursor: grab; box-shadow: 0 4px 15px rgba(255,165,2,0.4);
-            touch-action: none;
-        }
-
-        #chatPanel {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 1000; display: none;
-            flex-direction: column; padding: 20px;
-        }
-
+        /* UI Elements */
         .card { background: #1a1a1a; padding: 20px; border-radius: 30px; width: 100%; max-width: 420px; text-align: center; border: 1px solid #333; position: relative; }
         .game-box { position: relative; width: 240px; height: 240px; margin: 15px auto; border-radius: 50%; border: 6px solid #444; background: #fff; }
-        
-        #bottle { 
-            position: absolute; top: 50%; left: 50%; width: 22px; height: 140px; 
-            background: #111; margin-top: -70px; margin-left: -11px; border-radius: 15px; 
-            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); z-index: 10;
-        }
+        #bottle { position: absolute; top: 50%; left: 50%; width: 22px; height: 140px; background: #111; margin-top: -70px; margin-left: -11px; border-radius: 15px; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); z-index: 10; }
         #bottle::after { content: '🍾'; position: absolute; top: -15px; left: -10px; font-size: 40px; transform: rotate(-45deg); }
-        
         .name-label { position: absolute; font-weight: 900; font-size: 11px; color: #000; transform: translate(-50%, -50%); width: 70px; text-align: center; }
 
-        .hidden-task { 
-            background: #000; color: #000; padding: 15px; border-radius: 15px; 
-            cursor: pointer; border: 2px dashed var(--gold); transition: 0.2s;
-            user-select: none; -webkit-touch-callout: none;
-        }
-
+        /* Interactive Elements */
+        .hidden-task { background: #000; color: #000; padding: 15px; border-radius: 15px; cursor: pointer; border: 2px dashed var(--gold); transition: 0.2s; }
         .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; padding: 14px; font-size: 1rem; }
-        #spinBtn { background: var(--dare); color: white; display: none; }
+        #chatBubble { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; z-index: 999; cursor: grab; touch-action: none; }
+        #chatPanel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; padding: 20px; }
+        #msgContainer { flex: 1; overflow-y: auto; margin-bottom: 10px; padding: 10px; }
         #resultBox { margin-top: 10px; padding: 15px; border-radius: 20px; background: #fff; color: #000; display: none; border: 4px solid var(--gold); }
-        
-        #msgContainer { flex: 1; overflow-y: auto; margin-bottom: 10px; padding: 10px; border-bottom: 1px solid #333; }
-        .chat-row { margin-bottom: 8px; font-size: 0.95rem; text-align: left; }
-        #chatPanel input { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #333; color: white; margin-bottom: 10px; }
     </style>
 </head>
 <body id="gameBody">
@@ -75,9 +45,10 @@
     </div>
 
     <div id="gameUI" style="display:none;">
-        <div id="hostOnly" style="display:none;">
+        <div id="hostControls" style="display:none;">
+            <button class="btn" style="background:#333; color:white;" onclick="addPlayerManual()">➕ ADD PLAYER MANUALLY</button>
             <button class="btn" style="background:var(--wa-green); color:white;" onclick="sendInvite()">🔗 WHATSAPP INVITE</button>
-            <button class="btn" id="spinBtn" onclick="triggerSyncSpin()">SPIN BOTTLE 🍾</button>
+            <button class="btn" id="spinBtn" style="background:var(--dare); color:white; display:none;" onclick="triggerSyncSpin()">SPIN BOTTLE 🍾</button>
         </div>
 
         <div class="game-box" id="arena"><div id="bottle"></div></div>
@@ -98,7 +69,7 @@
         <button onclick="toggleChat()" style="background:none; border:none; color:white; font-size:2rem;">&times;</button>
     </div>
     <div id="msgContainer"></div>
-    <input type="text" id="chatInput" placeholder="Type a message...">
+    <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendChat()">
     <button class="btn" style="background:var(--truth); color:white;" onclick="sendChat()">SEND MESSAGE</button>
 </div>
 
@@ -106,7 +77,7 @@
     let peer, conn, players = [], isHost = false, rotation = 0, myName = "";
     const conns = [];
 
-    // --- PANIC TRIGGER (Triple Tap) ---
+    // --- PANIC MODE (Triple Tap) ---
     let tapCount = 0;
     document.getElementById('gameBody').addEventListener('click', (e) => {
         if(e.target.tagName === 'BODY' || e.target.id === 'mainCard') {
@@ -116,35 +87,14 @@
         }
     });
 
-    // --- DRAGGABLE BUBBLE ---
-    const bubble = document.getElementById('chatBubble');
-    let offsetX, offsetY;
-    bubble.addEventListener('touchstart', (e) => {
-        offsetX = e.touches[0].clientX - bubble.offsetLeft;
-        offsetY = e.touches[0].clientY - bubble.offsetTop;
-    });
-    bubble.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        bubble.style.left = (e.touches[0].clientX - offsetX) + 'px';
-        bubble.style.top = (e.touches[0].clientY - offsetY) + 'px';
-        bubble.style.bottom = 'auto'; bubble.style.right = 'auto';
-    });
-    bubble.addEventListener('click', toggleChat);
-
-    function toggleChat() {
-        const p = document.getElementById('chatPanel');
-        p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
-    }
-
-    // --- REVEAL LOGIC ---
+    // --- TASK REVEAL ---
     const vTask = document.getElementById('vTask');
-    const showTask = () => { vTask.style.color = "white"; vTask.style.background = "transparent"; };
-    const hideTask = () => { vTask.style.color = "black"; vTask.style.background = "#000"; };
-
-    vTask.addEventListener('touchstart', (e) => { e.preventDefault(); showTask(); });
-    vTask.addEventListener('touchend', hideTask);
-    vTask.addEventListener('mousedown', showTask);
-    vTask.addEventListener('mouseup', hideTask);
+    const showT = () => { vTask.style.color = "white"; vTask.style.background = "transparent"; };
+    const hideT = () => { vTask.style.color = "black"; vTask.style.background = "#000"; };
+    vTask.addEventListener('touchstart', (e) => { e.preventDefault(); showT(); });
+    vTask.addEventListener('touchend', hideT);
+    vTask.addEventListener('mousedown', showT);
+    vTask.addEventListener('mouseup', hideT);
 
     const tasks = [
         "Open your browser's private tabs and show the group.",
@@ -155,26 +105,58 @@
         "Play the last voice note you received out loud."
     ];
 
+    // --- HOST LOGIC ---
     function initHost() {
-        myName = prompt("Enter Your Name:") || "Host"; isHost = true;
+        myName = (prompt("Enter Your Name:") || "Host").trim();
+        isHost = true;
         const id = Math.floor(1000 + Math.random() * 9000).toString();
         peer = new Peer('fh-' + id);
-        peer.on('open', () => { players.push(myName); setupUI(id); });
+        
+        peer.on('open', () => { 
+            players.push(myName); 
+            setupUI(id); 
+            draw();
+        });
+
         peer.on('connection', (c) => {
             conns.push(c);
             c.on('data', (d) => {
-                if(d.type === 'join') { players.push(d.n); bcast({type:'sync', p:players}); draw(); }
+                if(d.type === 'join') {
+                    // Avoid duplicates if host already added name manually
+                    if(!players.map(p => p.toLowerCase()).includes(d.n.toLowerCase())) {
+                        players.push(d.n);
+                    }
+                    bcast({type:'sync', p:players}); 
+                    draw();
+                }
                 if(d.type === 'chat') { bcast(d); addMsg(d.u, d.m); }
             });
         });
     }
 
+    function addPlayerManual() {
+        const n = prompt("Enter Player Name:").trim();
+        if(n) {
+            if(!players.map(p => p.toLowerCase()).includes(n.toLowerCase())) {
+                players.push(n);
+                draw();
+                if(isHost) bcast({type:'sync', p:players});
+            } else {
+                alert("Name already in the circle!");
+            }
+        }
+    }
+
+    // --- PLAYER LOGIC ---
     function initPlayer(id) {
-        myName = prompt("Enter Your Name:") || "Guest";
+        myName = (prompt("Enter Your Name to Identify Device:") || "Guest").trim();
         peer = new Peer();
         peer.on('open', () => {
             conn = peer.connect('fh-' + id);
-            conn.on('open', () => { setupUI(id); conn.send({type:'join', n:myName}); });
+            conn.on('open', () => { 
+                setupUI(id); 
+                conn.send({type:'join', n:myName}); 
+            });
             conn.on('data', (d) => {
                 if(d.type === 'sync') { players = d.p; draw(); }
                 if(d.type === 'spin') runSpin(d);
@@ -187,19 +169,14 @@
         document.getElementById('setupControls').style.display='none';
         document.getElementById('gameUI').style.display='block';
         document.getElementById('status').innerText = "ROOM ID: " + id;
-        if(isHost) document.getElementById('hostOnly').style.display = 'block';
+        if(isHost) document.getElementById('hostControls').style.display = 'block';
     }
 
     function triggerSyncSpin() {
         const idx = Math.floor(Math.random() * players.length);
         const task = tasks[Math.floor(Math.random() * tasks.length)];
         const step = 360 / players.length;
-        const targetAngle = idx * step;
-        const randomExtra = (Math.random() * 20) - 10; // Natural offset
-        
-        // Cumulative rotation for realistic physics
-        rotation += (360 * 5) + (360 - (rotation % 360)) + targetAngle + randomExtra;
-        
+        rotation += (360 * 5) + (360 - (rotation % 360)) + (idx * step) + (Math.random()*20-10);
         const d = { type:'spin', rot:rotation, idx:idx, t:task };
         bcast(d); runSpin(d);
     }
@@ -208,11 +185,22 @@
         document.getElementById('resultBox').style.display='none';
         document.getElementById('bottle').style.transform = `rotate(${d.rot}deg)`;
         setTimeout(() => {
-            document.getElementById('vName').innerText = players[d.idx];
+            const winner = players[d.idx];
+            document.getElementById('vName').innerText = winner;
             document.getElementById('vTask').innerText = d.t;
             document.getElementById('resultBox').style.display='block';
-            if(players[d.idx] === myName && navigator.vibrate) navigator.vibrate([300, 100, 300]);
+            
+            // Device Notification Logic
+            if(winner.toLowerCase() === myName.toLowerCase()) {
+                if(navigator.vibrate) navigator.vibrate([400, 100, 400]);
+            }
         }, 4000);
+    }
+
+    // --- CHAT & INVITE ---
+    function toggleChat() {
+        const p = document.getElementById('chatPanel');
+        p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
     }
 
     function sendChat() {
@@ -228,9 +216,7 @@
         c.scrollTop = c.scrollHeight;
     }
 
-    function bcast(d) {
-        conns.forEach(c => { if(c.open) c.send(d); });
-    }
+    function bcast(d) { conns.forEach(c => { if(c.open) c.send(d); }); }
 
     function draw() {
         const arena = document.getElementById('arena');
