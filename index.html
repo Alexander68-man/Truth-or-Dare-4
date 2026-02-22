@@ -3,142 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fun House: WhatsApp Edition</title>
+    <title>Fun House: 2+ Player Edition</title>
     <style>
-        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth-blue: #34B7F1; --dare-pink: #e91e63; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--wa-dark); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box; overflow: hidden; }
+        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth: #34B7F1; --dare: #e91e63; }
+        body { font-family: sans-serif; background: var(--wa-dark); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow-x: hidden; padding: 10px; }
+        .card { background: white; padding: 20px; border-radius: 25px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.3); position: relative; }
         
-        .card { background: white; padding: 20px; border-radius: 25px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
-        
-        /* Lobby Section */
-        #lobby { margin-bottom: 15px; padding: 10px; background: #f0fdf4; border-radius: 15px; border: 1px dashed var(--wa-green); }
-        .player-count { font-weight: bold; color: var(--wa-dark); font-size: 1.1rem; }
+        /* Lobby & Turn Info */
+        .lobby-bar { background: #f0f0f0; padding: 12px; border-radius: 15px; margin-bottom: 15px; font-weight: bold; color: var(--wa-dark); border: 2px solid #ddd; }
+        .player-tag { display: inline-block; background: var(--wa-green); color: white; padding: 2px 8px; border-radius: 5px; font-size: 0.7rem; margin: 2px; }
 
-        /* The Bottle Spin Area */
-        .bottle-container { position: relative; width: 260px; height: 260px; margin: 20px auto; border-radius: 50%; border: 10px solid #333; background: #f9f9f9; }
+        /* The Spin Area */
+        .game-box { position: relative; width: 260px; height: 260px; margin: 10px auto; border-radius: 50%; border: 8px solid #333; background: #fff; }
         #bottle { 
             position: absolute; top: 50%; left: 50%; 
-            width: 20px; height: 160px; 
+            width: 14px; height: 140px; 
             background: #222; 
-            margin-top: -80px; margin-left: -10px; 
-            border-radius: 50px; 
+            margin-top: -70px; margin-left: -7px; 
+            border-radius: 10px; 
             transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1);
-            z-index: 10;
+            z-index: 5;
         }
-        #bottle::after { content: '🍾'; position: absolute; top: -10px; left: -5px; font-size: 30px; transform: rotate(-45deg); }
+        #bottle::after { content: '🍾'; position: absolute; top: -15px; left: -8px; font-size: 30px; transform: rotate(-45deg); }
 
-        /* Names placed around the circle */
-        .name-tag { position: absolute; font-weight: bold; font-size: 11px; color: #555; transform: translate(-50%, -50%); width: 70px; text-align: center; }
+        .name-label { position: absolute; font-weight: bold; font-size: 11px; color: #444; transform: translate(-50%, -50%); width: 70px; }
 
-        #turnDisplay { font-weight: bold; color: var(--wa-dark); font-size: 1.2rem; margin-bottom: 10px; display: block; }
-        #announcement { margin-top: 15px; padding: 15px; border-radius: 15px; background: #f9f9f9; display: none; border: 2px solid var(--wa-green); }
+        /* Announcement UI */
+        #resultBox { margin-top: 15px; padding: 15px; border-radius: 15px; background: #f9f9f9; display: none; border: 2px solid var(--wa-green); animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.2s; }
-        .btn-spin { background: var(--wa-green); color: white; font-size: 1.3rem; padding: 18px; box-shadow: 0 5px 0 #128C7E; }
-        .btn-join { background: #34B7F1; color: white; padding: 10px; font-size: 0.9rem; margin-bottom: 10px; }
-        .btn-wa { background: var(--wa-dark); color: white; padding: 15px; }
-        
-        textarea { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid #ccc; margin-top: 10px; }
-        .pill { display: inline-block; padding: 4px 15px; border-radius: 20px; color: white; font-weight: bold; font-size: 0.8rem; margin: 8px 0; }
+        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; padding: 15px; font-size: 1.1rem; }
+        .btn-spin { background: var(--wa-green); color: white; box-shadow: 0 4px 0 #128C7E; }
+        .btn-spin:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+        .btn-join { background: var(--truth); color: white; padding: 10px; font-size: 0.9rem; }
+        .btn-wa { background: var(--wa-dark); color: white; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div id="lobby">
-        <div class="player-count">Players Ready: <span id="count">0</span>/6</div>
-        <button class="btn btn-join" id="joinBtn" onclick="joinGame()">I'm Ready! 🙋‍♂️</button>
+    <div class="lobby-bar">
+        <div id="statusText">Waiting for Players (Min. 2)</div>
+        <div id="playerList"></div>
     </div>
 
-    <span id="turnDisplay">Waiting for players...</span>
+    <button class="btn btn-join" id="joinBtn" onclick="registerPlayer()">CLICK TO JOIN GAME 🙋‍♂️</button>
 
-    <div class="bottle-container" id="gameArea">
+    <div class="game-box" id="arena">
         <div id="bottle"></div>
-        </div>
+    </div>
 
-    <button class="btn btn-spin" id="spinBtn" onclick="spin()" disabled>SPIN BOTTLE</button>
+    <button class="btn btn-spin" id="spinBtn" onclick="startSpin()" disabled>NEED 2+ PLAYERS TO SPIN</button>
 
-    <div id="announcement">
-        <span id="victim" style="font-size:1.5rem; font-weight:bold; color:var(--wa-dark);"></span><br>
-        <div id="typePill" class="pill"></div>
-        <div id="prompt" style="font-style:italic; margin:10px 0; color:#444;"></div>
-        <textarea id="answer" rows="2" placeholder="Your answer..."></textarea>
-        <button class="btn btn-wa" onclick="share()">Post to WhatsApp 💬</button>
+    <div id="resultBox">
+        <b style="font-size: 1.4rem;" id="victimName"></b><br>
+        <span id="typeTag" style="color:white; padding:2px 10px; border-radius:10px; font-size:0.8rem; font-weight:bold; display:inline-block; margin: 5px 0;"></span>
+        <p id="challengeText" style="font-style: italic; color: #333;"></p>
+        <textarea id="reply" style="width:100%; border-radius:10px; padding:8px; box-sizing:border-box;" placeholder="Type your answer here..."></textarea>
+        <button class="btn btn-wa" onclick="sendToWA()">Broadcast to WhatsApp 💬</button>
     </div>
 </div>
 
 <script>
-    const players = ["Alexander", "Roes", "Vivian", "Shawn", "Disway", "Mac Lord"];
-    let readyCount = 0;
-    let rotation = 0;
-    let currentPlayerIndex = 0;
+    const allNames = ["Alexander", "Roes", "Vivian", "Shawn", "Disway", "Mac Lord"];
+    let activePlayers = [];
+    let rot = 0;
 
-    const truths = ["Who was your best kiss?", "Secret dating 'ick'?", "Describe a wild fantasy.", "Lied about being single?", "Celebrity 'hall pass'?", "Most embarrassing 'mood' moment?", "Dirtiest text sent?", "Caught doing something private?", "Marry one person in this group?", "What is your biggest secret?"];
-    const dares = ["Voice note: Spicy whisper.", "WhatsApp Status: 'Bedroom eyes' selfie.", "DM crush: 'Dreamed of you'.", "Send 10th photo in recents.", "Text ex 'I miss you' then delete.", "Send browser history screenshot.", "Voice note: Moan for 5s."];
+    const tList = ["Who in this group is the best looking?", "What's the biggest lie you've told a partner?", "Who would you marry in this group?", "What's your most embarrassing dating story?", "Have you ever ghosted someone here?"];
+    const dList = ["Send a screenshot of your last 3 Google searches.", "Voice note: Say 'I've been a naughty baby' in the group.", "Post a 'thirst trap' photo on your WhatsApp Status.", "Text your crush 'I like you' and show the group.", "Let the group choose a random contact for you to text."];
 
-    function init() {
-        const area = document.getElementById('gameArea');
-        const radius = 100; // Distance from center
-        players.forEach((name, i) => {
-            const angle = (i * (360 / players.length)) * (Math.PI / 180);
-            const x = 130 + radius * Math.cos(angle - Math.PI/2);
-            const y = 130 + radius * Math.sin(angle - Math.PI/2);
-            
+    function setup() {
+        const arena = document.getElementById('arena');
+        allNames.forEach((name, i) => {
+            const angle = (i * (360 / allNames.length)) * (Math.PI / 180);
+            const x = 130 + 100 * Math.cos(angle - Math.PI/2);
+            const y = 130 + 100 * Math.sin(angle - Math.PI/2);
             const tag = document.createElement('div');
-            tag.className = 'name-tag';
-            tag.style.left = x + 'px';
-            tag.style.top = y + 'px';
+            tag.className = 'name-label';
+            tag.style.left = x + 'px'; tag.style.top = y + 'px';
             tag.innerText = name;
-            area.appendChild(tag);
+            arena.appendChild(tag);
         });
     }
 
-    function joinGame() {
-        readyCount++;
-        document.getElementById('count').innerText = readyCount;
-        if(readyCount >= 1) { // Set to players.length if you want to wait for everyone
-            document.getElementById('spinBtn').disabled = false;
-            document.getElementById('turnDisplay').innerText = `${players[currentPlayerIndex]}'s turn to spin!`;
+    function registerPlayer() {
+        let name = prompt("Enter your name to join:");
+        if (name && !activePlayers.includes(name)) {
+            activePlayers.push(name);
+            updateLobby();
         }
-        document.getElementById('joinBtn').disabled = true;
-        document.getElementById('joinBtn').innerText = "You are IN!";
     }
 
-    function spin() {
-        document.getElementById('announcement').style.display = "none";
-        document.getElementById('spinBtn').disabled = true;
-
-        const extraSpins = 1800; // 5 full rounds
-        const randomVictimIdx = Math.floor(Math.random() * players.length);
-        const targetAngle = randomVictimIdx * (360 / players.length);
+    function updateLobby() {
+        const list = document.getElementById('playerList');
+        const status = document.getElementById('statusText');
+        const spinBtn = document.getElementById('spinBtn');
         
-        rotation += extraSpins + (360 - (rotation % 360)) + targetAngle;
-        document.getElementById('bottle').style.transform = `rotate(${rotation}deg)`;
+        list.innerHTML = activePlayers.map(p => `<span class="player-tag">${p}</span>`).join('');
+        
+        if (activePlayers.length >= 2) {
+            status.innerText = "Game Ready! Who's spinning?";
+            spinBtn.disabled = false;
+            spinBtn.innerText = "SPIN THE BOTTLE 🍾";
+        } else {
+            status.innerText = "Waiting for Players (Min. 2)";
+            spinBtn.disabled = true;
+            spinBtn.innerText = "NEED 1 MORE PLAYER";
+        }
+    }
+
+    function startSpin() {
+        document.getElementById('resultBox').style.display = "none";
+        document.getElementById('spinBtn').disabled = true;
+        
+        const vIdx = Math.floor(Math.random() * allNames.length);
+        const stopAngle = vIdx * (360 / allNames.length);
+        
+        rot += 1800 + (360 - (rot % 360)) + stopAngle;
+        document.getElementById('bottle').style.transform = `rotate(${rot}deg)`;
 
         setTimeout(() => {
             const isT = Math.random() > 0.5;
-            const prompt = (isT ? truths : dares)[Math.floor(Math.random() * (isT ? truths.length : dares.length))];
+            const promptStr = (isT ? tList : dList)[Math.floor(Math.random() * 5)];
             
-            document.getElementById('victim').innerText = players[randomVictimIdx];
-            document.getElementById('prompt').innerText = `"${prompt}"`;
-            const pill = document.getElementById('typePill');
-            pill.innerText = isT ? "TRUTH" : "DARE";
-            pill.style.backgroundColor = isT ? 'var(--truth-blue)' : 'var(--dare-pink)';
-            document.getElementById('announcement').style.display = "block";
+            document.getElementById('victimName').innerText = allNames[vIdx];
+            document.getElementById('challengeText').innerText = promptStr;
+            const tag = document.getElementById('typeTag');
+            tag.innerText = isT ? "TRUTH" : "DARE";
+            tag.style.background = isT ? 'var(--truth)' : 'var(--dare)';
             
-            // Move turn to next person
-            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-            document.getElementById('turnDisplay').innerText = `Next Spinner: ${players[currentPlayerIndex]}`;
+            document.getElementById('resultBox').style.display = "block";
             document.getElementById('spinBtn').disabled = false;
         }, 4000);
     }
 
-    function share() {
-        const text = `*FUN HOUSE RESULT*\n👤 *Victim:* ${document.getElementById('victim').innerText}\n📜 *Task:* ${document.getElementById('prompt').innerText}\n💬 *Answer:* ${document.getElementById('answer').value || "Completed!"}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    function sendToWA() {
+        const v = document.getElementById('victimName').innerText;
+        const c = document.getElementById('challengeText').innerText;
+        const a = document.getElementById('reply').value;
+        const type = document.getElementById('typeTag').innerText;
+        const msg = `*🔥 FUN HOUSE SPIN *\n\n🎯 *Victim:* ${v}\n🎭 *Type:* ${type}\n📜 *Task:* ${c}\n💬 *Answer:* ${a || "Check the group!"}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
-    init();
+    setup();
 </script>
 </body>
 </html>
