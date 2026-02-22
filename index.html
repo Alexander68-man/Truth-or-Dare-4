@@ -3,190 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fun House: Name Input System</title>
+    <title>Fun House: Vibrate Edition</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth: #34B7F1; }
+        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth: #34B7F1; --dare: #e91e63; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--wa-dark); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; box-sizing: border-box; }
         .card { background: white; padding: 20px; border-radius: 25px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
-        
-        /* Lobby UI */
-        .lobby-panel { background: #f8f9fa; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 2px solid #eee; }
-        .chip { display: inline-block; padding: 6px 14px; border-radius: 20px; margin: 4px; font-size: 0.85rem; font-weight: bold; background: #ddd; color: #666; transition: all 0.3s ease; }
-        .chip.ready-state { background: var(--wa-green); color: white; border: 2px solid #128C7E; }
-
-        /* The Wheel Area */
-        .game-area { position: relative; width: 260px; height: 260px; margin: 20px auto; border-radius: 50%; border: 8px solid #333; background: #fafafa; display: flex; align-items: center; justify-content: center; }
-        #wheel { width: 100%; height: 100%; border-radius: 50%; position: absolute; transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); display: none; }
-        #bottle { position: absolute; width: 16px; height: 150px; background: #222; border-radius: 10px; z-index: 10; display: none; pointer-events: none; }
+        .lobby-info { background: #f1f8ff; padding: 12px; border-radius: 15px; margin-bottom: 15px; border: 2px solid #007bff; }
+        .id-badge { font-size: 1.4rem; font-weight: 900; color: #007bff; letter-spacing: 2px; }
+        .game-area { position: relative; width: 260px; height: 260px; margin: 20px auto; border-radius: 50%; border: 8px solid #333; background: #fff; }
+        #wheel { width: 100%; height: 100%; border-radius: 50%; position: absolute; transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); }
+        #bottle { position: absolute; top: 50%; left: 50%; width: 16px; height: 150px; background: #222; margin-top: -75px; margin-left: -8px; border-radius: 10px; z-index: 10; pointer-events: none; }
         #bottle::after { content: '🍾'; position: absolute; top: -15px; left: -10px; font-size: 34px; transform: rotate(-45deg); }
-
-        .name-label { position: absolute; font-weight: bold; font-size: 11px; z-index: 15; background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; transform: translate(-50%, -50%); pointer-events: none; }
-
-        /* Controls */
-        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; padding: 16px; font-size: 1.1rem; transition: 0.2s; }
-        #joinBtn { background: #333; color: white; }
-        #readyBtn { background: var(--truth); color: white; display: none; }
+        .name-label { position: absolute; font-weight: bold; font-size: 11px; z-index: 15; background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #ccc; transform: translate(-50%, -50%); }
+        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; padding: 16px; font-size: 1rem; }
         #spinBtn { background: var(--wa-green); color: white; display: none; box-shadow: 0 5px 0 #128C7E; }
-        #spinBtn:active { transform: translateY(4px); box-shadow: none; }
-        
-        #resultBox { margin-top: 15px; padding: 15px; border-radius: 15px; background: #fffde7; display: none; border: 2px solid #fbc02d; animation: pop 0.3s ease-out; }
-        @keyframes pop { from { transform: scale(0.8); } to { transform: scale(1); } }
+        #resultBox { margin-top: 15px; padding: 15px; border-radius: 15px; background: #fffde7; display: none; border: 2px solid #fbc02d; animation: pop 0.4s ease; }
+        .type-pill { display: inline-block; padding: 4px 12px; border-radius: 10px; color: white; font-size: 0.8rem; margin-bottom: 5px; }
+        @keyframes pop { from { transform: scale(0.8); opacity:0; } to { transform: scale(1); opacity:1; } }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="lobby-panel">
-        <div style="font-weight: 900; color: var(--wa-dark); letter-spacing: 1px;">PLAYER LOBBY</div>
-        <div id="chipBox" style="min-height: 40px; margin: 10px 0;"></div>
-        <div id="statusInfo" style="font-size: 0.8rem; color: #e74c3c; font-weight: bold;">Step 1: Add at least 2 names</div>
+    <div id="setupView">
+        <h2 style="color:var(--wa-dark)">Fun House Live</h2>
+        <button class="btn" style="background:var(--truth); color:white;" onclick="startHost()">HOST GAME</button>
+        <button class="btn" style="background:#333; color:white;" onclick="startPlayer()">JOIN GAME</button>
     </div>
 
-    <button class="btn" id="joinBtn" onclick="addPlayerName()">➕ ADD PLAYER NAME</button>
-    <button class="btn" id="readyBtn" onclick="confirmReady()">🙋 I AM READY</button>
-    <button class="btn" id="spinBtn" onclick="spinBottle()">SPIN BOTTLE 🍾</button>
-
-    <div class="game-area" id="arena">
-        <div id="waitingMsg" style="color:#bbb; font-weight:bold;">LOCK ACTIVE 🔒</div>
-        <div id="wheel"></div>
-        <div id="bottle"></div>
-    </div>
-
-    <div id="resultBox">
-        <div id="targetName" style="font-size: 1.5rem; font-weight: 900; color: #c62828;"></div>
-        <p id="targetTask" style="font-style: italic; margin: 10px 0; color: #333;"></p>
-        <button class="btn" style="background:var(--wa-dark); color:white; padding:10px;" onclick="shareWA()">SHARE TO WHATSAPP 💬</button>
+    <div id="mainGame" style="display:none;">
+        <div class="lobby-info">
+            <div id="connMsg" style="font-size:0.8rem;">INITIALIZING...</div>
+            <div id="idCode" class="id-badge">----</div>
+        </div>
+        <button class="btn" id="addBtn" style="background:#333; color:white;" onclick="hAdd()">➕ ADD PLAYER</button>
+        <button class="btn" id="spinBtn" onclick="bSpin()">SPIN FOR ALL 🍾</button>
+        <div class="game-area">
+            <div id="wheel"></div>
+            <div id="bottle"></div>
+        </div>
+        <div id="resultBox">
+            <div id="tType" class="type-pill"></div>
+            <div id="vName" style="font-size: 1.6rem; font-weight: 900; color: #c62828;"></div>
+            <p id="tText" style="font-style: italic; font-weight: bold; margin: 10px 0;"></p>
+        </div>
     </div>
 </div>
 
 <script>
-    let players = [];
-    let readyCount = 0;
-    let rotation = 0;
+    let peer, conn, players = [], rotation = 0, isHost = false, myName = "";
+    const conns = [];
+    const ts = ["Secret crush?", "Ever lied to the group?", "Biggest ick?", "Best looking here?"];
+    const ds = ["Sing a song.", "Post a selfie.", "Text an ex.", "Show browser history."];
 
-    const prompts = [
-        "Truth: Who was your first crush?",
-        "Dare: Send a heart emoji to your 5th contact on WhatsApp.",
-        "Truth: What is your most embarrassing secret?",
-        "Dare: Post 'I love eating lemons' on your WhatsApp status.",
-        "Truth: If you could marry anyone in this room, who would it be?",
-        "Dare: Show the last photo you took with your phone."
-    ];
-
-    // STEP 1: Input System
-    function addPlayerName() {
-        const name = prompt("Enter player's name:");
-        if (name && name.trim() !== "") {
-            players.push({ name: name.trim(), ready: false });
-            refreshLobby();
-        }
-    }
-
-    // STEP 2: Ready Confirmation
-    function confirmReady() {
-        // Find the first player in the list who isn't ready yet
-        const nextToReady = players.find(p => !p.ready);
-        if (nextToReady) {
-            nextToReady.ready = true;
-            readyCount++;
-            refreshLobby();
-        }
-    }
-
-    function refreshLobby() {
-        const chipBox = document.getElementById('chipBox');
-        const status = document.getElementById('statusInfo');
-        const jBtn = document.getElementById('joinBtn');
-        const rBtn = document.getElementById('readyBtn');
-        const sBtn = document.getElementById('spinBtn');
-
-        // Update visual chips
-        chipBox.innerHTML = players.map(p => 
-            `<span class="chip ${p.ready ? 'ready-state' : ''}">${p.name}</span>`
-        ).join('');
-
-        // Show/Hide Ready button
-        rBtn.style.display = (players.length > readyCount) ? "block" : "none";
-
-        // THE LOCKING LOGIC
-        if (players.length >= 2 && readyCount === players.length) {
-            // UNLOCKED
-            jBtn.style.display = "none";
-            rBtn.style.display = "none";
-            sBtn.style.display = "block";
-            status.innerText = "ALL READY! SPIN WHEN READY!";
-            status.style.color = "var(--wa-green)";
-            initWheel();
-        } else if (players.length >= 2) {
-            // PARTIALLY READY
-            status.innerText = `Waiting for ${players.length - readyCount} more to click Ready...`;
-            status.style.color = "#f39c12";
-        } else {
-            // NOT ENOUGH PLAYERS
-            status.innerText = "Add at least 2 players!";
-            status.style.color = "#e74c3c";
-        }
-    }
-
-    function initWheel() {
-        document.getElementById('waitingMsg').style.display = "none";
-        document.getElementById('wheel').style.display = "block";
-        document.getElementById('bottle').style.display = "block";
-
-        const wheel = document.getElementById('wheel');
-        const arena = document.getElementById('arena');
-        
-        // Remove old labels if any
-        document.querySelectorAll('.name-label').forEach(el => el.remove());
-
-        const step = 360 / players.length;
-        let colors = [];
-
-        players.forEach((p, i) => {
-            const color = (i % 2 === 0) ? '#ffffff' : '#f2f2f2';
-            colors.push(`${color} ${i * step}deg ${(i + 1) * step}deg`);
-
-            // Place Labels around the circle
-            const angle = (i * step + step / 2) * (Math.PI / 180);
-            const x = 130 + 85 * Math.cos(angle - Math.PI/2);
-            const y = 130 + 85 * Math.sin(angle - Math.PI/2);
-            
-            const label = document.createElement('div');
-            label.className = 'name-label';
-            label.style.left = x + 'px'; 
-            label.style.top = y + 'px';
-            label.innerText = p.name;
-            arena.appendChild(label);
+    function startHost() {
+        isHost = true; myName = prompt("Your Name:");
+        if(!myName) return; players.push(myName);
+        const id = Math.floor(1000 + Math.random() * 9000).toString();
+        peer = new Peer('fun-' + id);
+        peer.on('open', () => { showG(id, "Hosting: Give code to friends!"); document.getElementById('spinBtn').style.display='block'; draw(); });
+        peer.on('connection', (c) => { 
+            conns.push(c); 
+            c.on('data', (d) => { if(d.type==='join'){ players.push(d.name); draw(); conns.forEach(cc=>cc.send({type:'sync', p:players})); }});
+            c.on('open', () => c.send({type:'sync', p:players}));
         });
-        wheel.style.background = `conic-gradient(${colors.join(', ')})`;
     }
 
-    function spinBottle() {
-        document.getElementById('spinBtn').disabled = true;
-        document.getElementById('resultBox').style.display = "none";
-        
-        const targetIdx = Math.floor(Math.random() * players.length);
+    function startPlayer() {
+        myName = prompt("Your Name:"); if(!myName) return;
+        const id = prompt("Enter 4-Digit ID:");
+        peer = new Peer();
+        peer.on('open', () => {
+            conn = peer.connect('fun-' + id);
+            conn.on('open', () => { showG(id, "Connected! Wait for Host."); conn.send({type:'join', name:myName}); document.getElementById('addBtn').style.display='none'; });
+            conn.on('data', (d) => { if(d.type==='sync'){ players=d.p; draw(); } if(d.type==='spin'){ rotation=d.rot; runS(d); }});
+        });
+    }
+
+    function showG(id, m) { document.getElementById('setupView').style.display='none'; document.getElementById('mainGame').style.display='block'; document.getElementById('idCode').innerText=id; document.getElementById('connMsg').innerText=m; }
+    function hAdd() { const n=prompt("Name:"); if(n){ players.push(n); draw(); conns.forEach(c=>c.send({type:'sync', p:players})); }}
+
+    function draw() {
+        const w = document.getElementById('wheel'); w.innerHTML = '';
         const step = 360 / players.length;
-        const targetAngle = targetIdx * step + (step / 2);
-        
-        // Ensure at least 5 full spins
-        rotation += 1800 + (360 - (rotation % 360)) + targetAngle;
-        document.getElementById('wheel').style.transform = `rotate(-${rotation}deg)`;
-
-        setTimeout(() => {
-            const task = prompts[Math.floor(Math.random() * prompts.length)];
-            document.getElementById('targetName').innerText = players[targetIdx].name;
-            document.getElementById('targetTask').innerText = `"${task}"`;
-            document.getElementById('resultBox').style.display = "block";
-            document.getElementById('spinBtn').disabled = false;
-        }, 4000);
+        players.forEach((p, i) => {
+            const a = (i * step + step/2) * (Math.PI/180);
+            const x = 130 + 85 * Math.cos(a - Math.PI/2);
+            const y = 130 + 85 * Math.sin(a - Math.PI/2);
+            const l = document.createElement('div'); l.className='name-label'; l.style.left=x+'px'; l.style.top=y+'px'; l.innerText=p;
+            w.appendChild(l);
+        });
+        w.style.background = `conic-gradient(${players.map((_,i)=>`${i%2===0?'#fff':'#f2f2f2'} ${i*step}deg ${(i+1)*step}deg`).join(',')})`;
     }
 
-    function shareWA() {
-        const name = document.getElementById('targetName').innerText;
-        const task = document.getElementById('targetTask').innerText;
-        const text = `*FUN HOUSE SPIN RESULT*\n\n🎯 *Victim:* ${name}\n📜 *Challenge:* ${task}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    function bSpin() {
+        const idx = Math.floor(Math.random()*players.length);
+        const isT = Math.random()>0.5;
+        const task = (isT?ts:ds)[Math.floor(Math.random()*4)];
+        const step = 360/players.length;
+        const newR = rotation + 1800 + (idx*step + step/2);
+        const data = { type:'spin', rot:newR, v:players[idx], t:task, isT:isT };
+        conns.forEach(c => c.send(data)); runS(data);
+    }
+
+    function runS(d) {
+        document.getElementById('resultBox').style.display='none';
+        document.getElementById('wheel').style.transform = `rotate(-${d.rot}deg)`;
+        setTimeout(() => {
+            document.getElementById('vName').innerText = d.v;
+            document.getElementById('tText').innerText = `"${d.t}"`;
+            const p = document.getElementById('tType');
+            p.innerText = d.isT ? "TRUTH" : "DARE";
+            p.style.background = d.isT ? "var(--truth)" : "var(--dare)";
+            document.getElementById('resultBox').style.display='block';
+            rotation = d.rot;
+            // VIBRATE IF IT IS YOU
+            if (d.v.toLowerCase() === myName.toLowerCase()) {
+                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            }
+        }, 4000);
     }
 </script>
 </body>
