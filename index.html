@@ -10,31 +10,33 @@
         * { -webkit-user-select: none; user-select: none; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; color: white; overflow: hidden; }
         
-        /* Panic Overlay */
         #panicOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; color: #333; z-index: 10000; display: none; padding: 40px; font-family: 'Times New Roman', serif; text-align: left; }
-
-        /* UI Elements */
         .card { background: #1a1a1a; padding: 20px; border-radius: 30px; width: 100%; max-width: 420px; text-align: center; border: 1px solid #333; position: relative; }
         .game-box { position: relative; width: 240px; height: 240px; margin: 15px auto; border-radius: 50%; border: 6px solid #444; background: #fff; }
-        #bottle { position: absolute; top: 50%; left: 50%; width: 22px; height: 140px; background: #111; margin-top: -70px; margin-left: -11px; border-radius: 15px; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); z-index: 10; }
+        
+        #bottle { 
+            position: absolute; top: 50%; left: 50%; width: 22px; height: 140px; 
+            background: #111; margin-top: -70px; margin-left: -11px; border-radius: 15px; 
+            transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); z-index: 10;
+        }
         #bottle::after { content: '🍾'; position: absolute; top: -15px; left: -10px; font-size: 40px; transform: rotate(-45deg); }
         .name-label { position: absolute; font-weight: 900; font-size: 11px; color: #000; transform: translate(-50%, -50%); width: 70px; text-align: center; }
 
-        /* Interactive Elements */
-        .hidden-task { background: #000; color: #000; padding: 15px; border-radius: 15px; cursor: pointer; border: 2px dashed var(--gold); transition: 0.2s; }
+        .hidden-task { background: #000; color: #000; padding: 15px; border-radius: 15px; cursor: pointer; border: 2px dashed var(--gold); }
         .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 8px; padding: 14px; font-size: 1rem; }
-        #chatBubble { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; z-index: 999; cursor: grab; touch-action: none; }
+        
+        #chatBubble { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background: var(--gold); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; z-index: 999; }
         #chatPanel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; padding: 20px; }
-        #msgContainer { flex: 1; overflow-y: auto; margin-bottom: 10px; padding: 10px; }
+        #msgContainer { flex: 1; overflow-y: auto; margin-bottom: 10px; padding: 10px; text-align: left; }
         #resultBox { margin-top: 10px; padding: 15px; border-radius: 20px; background: #fff; color: #000; display: none; border: 4px solid var(--gold); }
     </style>
 </head>
 <body id="gameBody">
 
 <div id="panicOverlay" onclick="this.style.display='none'">
-    <h1 style="border-bottom: 2px solid #333;">Global Weather Report 2026</h1>
-    <p>Current atmospheric pressure is stabilizing across the central plains. Meteorologists predict a 15% decrease in precipitation for the coming fiscal quarter...</p>
-    <p style="margin-top: 20px; color: #666; font-style: italic;">Tap anywhere to resume document review.</p>
+    <h1 style="border-bottom: 2px solid #333;">Weather & Global News</h1>
+    <p>Atmospheric shifts are being recorded across the Atlantic...</p>
+    <p style="color: #666; font-style: italic;">Tap to return.</p>
 </div>
 
 <div class="card" id="mainCard">
@@ -46,7 +48,8 @@
 
     <div id="gameUI" style="display:none;">
         <div id="hostControls" style="display:none;">
-            <button class="btn" style="background:#333; color:white;" onclick="addPlayerManual()">➕ ADD PLAYER MANUALLY</button>
+            <button class="btn" style="background:#333; color:white; width: 48%; display: inline-block;" onclick="addPlayerManual()">➕ ADD</button>
+            <button class="btn" style="background:#cc0000; color:white; width: 48%; display: inline-block;" onclick="resetGame()">🧹 RESET</button>
             <button class="btn" style="background:var(--wa-green); color:white;" onclick="sendInvite()">🔗 WHATSAPP INVITE</button>
             <button class="btn" id="spinBtn" style="background:var(--dare); color:white; display:none;" onclick="triggerSyncSpin()">SPIN BOTTLE 🍾</button>
         </div>
@@ -55,13 +58,13 @@
 
         <div id="resultBox">
             <b id="vName" style="font-size:1.4rem;"></b><br>
-            <p style="font-size:0.75rem; color:#666; margin:5px 0;">(HOLD BOX TO REVEAL TASK)</p>
+            <p style="font-size:0.75rem; color:#666; margin:5px 0;">(HOLD BOX TO REVEAL)</p>
             <div class="hidden-task" id="vTask">...</div>
         </div>
     </div>
 </div>
 
-<div id="chatBubble">💬</div>
+<div id="chatBubble" onclick="toggleChat()">💬</div>
 
 <div id="chatPanel">
     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -69,178 +72,147 @@
         <button onclick="toggleChat()" style="background:none; border:none; color:white; font-size:2rem;">&times;</button>
     </div>
     <div id="msgContainer"></div>
-    <input type="text" id="chatInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendChat()">
-    <button class="btn" style="background:var(--truth); color:white;" onclick="sendChat()">SEND MESSAGE</button>
+    <input type="text" id="chatInput" placeholder="Type a message..." style="width:100%; padding:15px; border-radius:12px; background:#333; color:white; border:none; margin-bottom:10px;">
+    <button class="btn" style="background:var(--truth); color:white;" onclick="sendChat()">SEND</button>
 </div>
 
 <script>
     let peer, conn, players = [], isHost = false, rotation = 0, myName = "";
     const conns = [];
+    const tasks = ["Show Private Tabs", "Last Deleted Photo", "WhatsApp Search History", "Show Battery Usage", "Last Voice Note", "Open Instagram DMs"];
 
-    // --- PANIC MODE (Triple Tap) ---
+    // Triple tap panic
     let tapCount = 0;
-    document.getElementById('gameBody').addEventListener('click', (e) => {
-        if(e.target.tagName === 'BODY' || e.target.id === 'mainCard') {
+    document.body.onclick = (e) => {
+        if(e.target.id === 'gameBody' || e.target.id === 'mainCard') {
             tapCount++;
             setTimeout(() => tapCount = 0, 400);
             if(tapCount === 3) document.getElementById('panicOverlay').style.display = 'block';
         }
-    });
+    };
 
-    // --- TASK REVEAL ---
-    const vTask = document.getElementById('vTask');
-    const showT = () => { vTask.style.color = "white"; vTask.style.background = "transparent"; };
-    const hideT = () => { vTask.style.color = "black"; vTask.style.background = "#000"; };
-    vTask.addEventListener('touchstart', (e) => { e.preventDefault(); showT(); });
-    vTask.addEventListener('touchend', hideT);
-    vTask.addEventListener('mousedown', showT);
-    vTask.addEventListener('mouseup', hideT);
+    function setupUI(id) {
+        document.getElementById('setupControls').style.display = 'none';
+        document.getElementById('gameUI').style.display = 'block';
+        document.getElementById('status').innerText = "ROOM ID: " + id;
+        if(isHost) document.getElementById('hostControls').style.display = 'block';
+    }
 
-    const tasks = [
-        "Open your browser's private tabs and show the group.",
-        "Show your 'Recently Deleted' photo folder.",
-        "DM your last Instagram search 'I'm thinking of you'.",
-        "Let the host scroll your WhatsApp chats for 20 seconds.",
-        "Show your screen time usage for the last 24 hours.",
-        "Play the last voice note you received out loud."
-    ];
-
-    // --- HOST LOGIC ---
     function initHost() {
-        myName = (prompt("Enter Your Name:") || "Host").trim();
-        isHost = true;
+        const n = prompt("Your Name:");
+        if(!n) return;
+        myName = n.trim();
         const id = Math.floor(1000 + Math.random() * 9000).toString();
-        peer = new Peer('fh-' + id);
         
-        peer.on('open', () => { 
-            players.push(myName); 
-            setupUI(id); 
+        peer = new Peer('fh-' + id);
+        peer.on('open', () => {
+            players.push(myName);
+            setupUI(id);
             draw();
         });
 
         peer.on('connection', (c) => {
             conns.push(c);
-            c.on('data', (d) => {
-                if(d.type === 'join') {
-                    // Avoid duplicates if host already added name manually
-                    if(!players.map(p => p.toLowerCase()).includes(d.n.toLowerCase())) {
-                        players.push(d.n);
-                    }
-                    bcast({type:'sync', p:players}); 
+            c.on('data', (data) => {
+                if(data.type === 'join') {
+                    if(!players.includes(data.n)) players.push(data.n);
+                    bcast({type:'sync', p:players});
                     draw();
                 }
-                if(d.type === 'chat') { bcast(d); addMsg(d.u, d.m); }
+                if(data.type === 'chat') { bcast(data); addMsg(data.u, data.m); }
             });
         });
     }
 
-    function addPlayerManual() {
-        const n = prompt("Enter Player Name:").trim();
-        if(n) {
-            if(!players.map(p => p.toLowerCase()).includes(n.toLowerCase())) {
-                players.push(n);
-                draw();
-                if(isHost) bcast({type:'sync', p:players});
-            } else {
-                alert("Name already in the circle!");
-            }
-        }
-    }
-
-    // --- PLAYER LOGIC ---
     function initPlayer(id) {
-        myName = (prompt("Enter Your Name to Identify Device:") || "Guest").trim();
+        const n = prompt("Your Name:");
+        if(!n) return;
+        myName = n.trim();
+        
         peer = new Peer();
         peer.on('open', () => {
             conn = peer.connect('fh-' + id);
-            conn.on('open', () => { 
-                setupUI(id); 
-                conn.send({type:'join', n:myName}); 
+            conn.on('open', () => {
+                setupUI(id);
+                conn.send({type:'join', n:myName});
             });
-            conn.on('data', (d) => {
-                if(d.type === 'sync') { players = d.p; draw(); }
-                if(d.type === 'spin') runSpin(d);
-                if(d.type === 'chat') addMsg(d.u, d.m);
+            conn.on('data', (data) => {
+                if(data.type === 'sync') { players = data.p; draw(); }
+                if(data.type === 'spin') runSpin(data);
+                if(data.type === 'chat') addMsg(data.u, data.m);
             });
         });
     }
 
-    function setupUI(id) {
-        document.getElementById('setupControls').style.display='none';
-        document.getElementById('gameUI').style.display='block';
-        document.getElementById('status').innerText = "ROOM ID: " + id;
-        if(isHost) document.getElementById('hostControls').style.display = 'block';
+    function resetGame() {
+        if(!confirm("Clear all players and start over?")) return;
+        players = [myName];
+        draw();
+        bcast({type:'sync', p:players});
+        document.getElementById('msgContainer').innerHTML = "";
+        document.getElementById('resultBox').style.display = 'none';
+    }
+
+    function addPlayerManual() {
+        const n = prompt("New Player Name:");
+        if(n) {
+            players.push(n.trim());
+            draw();
+            if(isHost) bcast({type:'sync', p:players});
+        }
     }
 
     function triggerSyncSpin() {
         const idx = Math.floor(Math.random() * players.length);
         const task = tasks[Math.floor(Math.random() * tasks.length)];
         const step = 360 / players.length;
-        rotation += (360 * 5) + (360 - (rotation % 360)) + (idx * step) + (Math.random()*20-10);
+        rotation += (360 * 5) + (360 - (rotation % 360)) + (idx * step);
         const d = { type:'spin', rot:rotation, idx:idx, t:task };
-        bcast(d); runSpin(d);
+        bcast(d); 
+        runSpin(d);
     }
 
     function runSpin(d) {
         document.getElementById('resultBox').style.display='none';
         document.getElementById('bottle').style.transform = `rotate(${d.rot}deg)`;
         setTimeout(() => {
-            const winner = players[d.idx];
-            document.getElementById('vName').innerText = winner;
+            document.getElementById('vName').innerText = players[d.idx];
             document.getElementById('vTask').innerText = d.t;
             document.getElementById('resultBox').style.display='block';
-            
-            // Device Notification Logic
-            if(winner.toLowerCase() === myName.toLowerCase()) {
+            if(players[d.idx].toLowerCase() === myName.toLowerCase()) {
                 if(navigator.vibrate) navigator.vibrate([400, 100, 400]);
             }
         }, 4000);
     }
 
-    // --- CHAT & INVITE ---
-    function toggleChat() {
-        const p = document.getElementById('chatPanel');
-        p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
-    }
-
-    function sendChat() {
-        const i = document.getElementById('chatInput'); if(!i.value) return;
-        const d = { type:'chat', u:myName, m:i.value };
-        if(isHost) bcast(d); else conn.send(d);
-        addMsg(myName, i.value); i.value = "";
-    }
-
-    function addMsg(u, m) {
-        const c = document.getElementById('msgContainer');
-        c.innerHTML += `<div class="chat-row"><b style="color:var(--gold)">${u}:</b> ${m}</div>`;
-        c.scrollTop = c.scrollHeight;
-    }
-
-    function bcast(d) { conns.forEach(c => { if(c.open) c.send(d); }); }
-
     function draw() {
         const arena = document.getElementById('arena');
-        document.querySelectorAll('.name-label').forEach(e=>e.remove());
-        const step = 360 / players.length;
+        document.querySelectorAll('.name-label').forEach(e => e.remove());
         players.forEach((n, i) => {
-            const a = (i * step) * (Math.PI/180);
+            const a = (i * (360/players.length)) * (Math.PI/180);
             const x = 120 + 95 * Math.cos(a - Math.PI/2);
             const y = 120 + 95 * Math.sin(a - Math.PI/2);
-            const l = document.createElement('div'); l.className='name-label';
-            l.style.left=x+'px'; l.style.top=y+'px'; l.innerText=n;
+            const l = document.createElement('div');
+            l.className = 'name-label'; l.style.left = x+'px'; l.style.top = y+'px'; l.innerText = n;
             arena.appendChild(l);
         });
         if(isHost && players.length >= 2) document.getElementById('spinBtn').style.display='block';
     }
 
-    function sendInvite() {
-        const link = window.location.origin + window.location.pathname + "?join=" + peer.id.replace('fh-','');
-        window.open(`https://wa.me/?text=${encodeURIComponent("*JOIN THE PRIVACY SESSION 🔞*\n" + link)}`);
+    function bcast(d) { conns.forEach(c => { if(c.open) c.send(d); }); }
+    function toggleChat() { const p = document.getElementById('chatPanel'); p.style.display = p.style.display === 'flex' ? 'none' : 'flex'; }
+    function sendChat() { 
+        const i = document.getElementById('chatInput'); if(!i.value) return;
+        const d = {type:'chat', u:myName, m:i.value};
+        if(isHost) bcast(d); else conn.send(d);
+        addMsg(myName, i.value); i.value = "";
     }
+    function addMsg(u, m) { document.getElementById('msgContainer').innerHTML += `<div><b>${u}:</b> ${m}</div>`; }
+    function sendInvite() { window.open(`https://wa.me/?text=${encodeURIComponent(window.location.origin + window.location.pathname + "?join=" + peer.id.replace('fh-',''))}`); }
 
-    window.onload = () => { 
+    window.onload = () => {
         const urlId = new URLSearchParams(window.location.search).get('join');
-        if(urlId) initPlayer(urlId); 
+        if(urlId) initPlayer(urlId);
     };
 </script>
 </body>
