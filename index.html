@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spicy Group Game</title>
+    <style>
+        :root { --wa-green: #25D366; --wa-dark: #075E54; --truth-blue: #34B7F1; --dare-pink: #e91e63; }
+        
+        body { 
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif; 
+            background-color: var(--wa-dark); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 25px; 
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4); 
+            box-sizing: border-box;
+        }
+        
+        .wheel-outer { 
+            position: relative; 
+            width: 280px; 
+            height: 280px; 
+            margin: 15px auto; 
+        }
+        
+        #wheel { 
+            width: 100%; height: 100%; 
+            border-radius: 50%; 
+            border: 8px solid #222; 
+            position: relative; 
+            overflow: hidden; 
+            transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); 
+            background: #eee; 
+        }
+        
+        #arrow { 
+            position: absolute; top: 50%; left: 50%; 
+            width: 10px; height: 140px; 
+            background: #222; 
+            margin-top: -70px; margin-left: -5px; 
+            border-radius: 10px; 
+            z-index: 20; 
+            transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1); 
+            pointer-events: none; 
+        }
+        #arrow::after { content: '▲'; position: absolute; top: -16px; left: -7px; color: #ff0000; font-size: 24px; }
+
+        .player-name { position: absolute; font-weight: 800; font-size: 10px; background: white; padding: 2px 5px; border-radius: 4px; transform: translate(-50%, -50%); z-index: 25; border: 1px solid #ddd; text-transform: uppercase; white-space: nowrap; }
+
+        #announcement { margin-top: 15px; padding: 15px; border-radius: 15px; background: #f9f9f9; display: none; border: 2px solid var(--wa-green); animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .target-name { font-size: 1.5rem; font-weight: bold; color: var(--wa-dark); display: block; }
+        .prompt-text { font-style: italic; margin: 10px 0; color: #444; font-size: 1.1rem; border-top: 1px solid #eee; padding-top: 10px; }
+
+        .btn { border: none; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; transition: 0.2s; outline: none; }
+        .btn-spin { background: var(--wa-green); color: white; font-size: 1.3rem; padding: 18px; box-shadow: 0 5px 0 #128C7E; }
+        .btn-spin:active { transform: translateY(3px); box-shadow: 0 2px 0 #128C7E; }
+        .btn-wa { background: var(--wa-dark); color: white; padding: 15px; font-size: 1rem; }
+        
+        textarea { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid #ccc; font-family: inherit; margin-bottom: 5px; font-size: 16px; }
+        .type-pill { display: inline-block; padding: 4px 15px; border-radius: 20px; color: white; font-weight: bold; font-size: 0.8rem; margin: 8px 0; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 style="margin:0; color:var(--wa-dark);">Group Spicy Spin</h2>
+    <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px;">Alexander, Roes, Vivian, Shawn, Disway, Mac Lord</div>
+
+    <div class="wheel-outer">
+        <div id="wheel"></div>
+        <div id="arrow"></div>
+    </div>
+
+    <button class="btn btn-spin" id="spinBtn" onclick="spin()">SPIN THE BOTTLE</button>
+
+    <div id="announcement">
+        <span class="target-name" id="victim"></span>
+        <div id="typePill" class="type-pill"></div>
+        <div class="prompt-text" id="prompt"></div>
+        
+        <textarea id="answer" rows="2" placeholder="Write answer here..."></textarea>
+        <button class="btn btn-wa" onclick="share()">Post to WhatsApp Group 💬</button>
+    </div>
+</div>
+
+<script>
+    const players = ["Alexander", "Roes", "Vivian", "Shawn", "Disway", "Mac Lord"];
+    let remainingPlayers = [...players];
+    let rotation = 0;
+
+    const truths = ["Who was your best kiss?", "Secret dating 'ick'?", "Describe a wild fantasy.", "Lied about being single?", "Celebrity 'hall pass'?", "Most embarrassing 'mood' moment?", "Liked an ex's old photo?", "Dirtiest text sent?", "One-night stand?", "First thing on a dating profile?", "Crush on a boss/teacher?", "18+ dream about a friend?", "Caught doing something private?", "Favorite body part?", "Longest without romance?", "Sent a risky text?", "Secret turn-on?", "The heartbreaker of this chat?", "Marry one person in this group?", "What is your biggest secret?"];
+    const dares = ["Voice note: Spicy whisper.", "WhatsApp Status: 'Bedroom eyes' selfie.", "DM crush: 'Dreamed of you'.", "Send 10th photo in recents.", "Text ex 'I miss you' then delete.", "Send browser history screenshot.", "Voice note: Moan for 5s.", "WhatsApp Status: 'Feeling lonely'.", "Flirty emoji to 5th contact.", "Record slow-mo wink.", "Describe player in 3 spicy words.", "Text random: 'I know what you did'.", "Show last Instagram search.", "Unbutton 2 buttons.", "Heart emoji to an old contact.", "Voice note: 'You've been bad'.", "Text BFF: 'I love you' (wait 1m).", "Tell your most awkward hookup story.", "Profile Pic: 'Thirsty' selfie.", "Send flirty message to asker."];
+
+    function draw() {
+        const wheel = document.getElementById('wheel');
+        const step = 360 / players.length;
+        let segments = [];
+        players.forEach((name, i) => {
+            const color = (i % 2 === 0) ? '#f4f4f4' : '#ffffff';
+            segments.push(`${color} ${i * step}deg ${(i + 1) * step}deg`);
+            const angle = (i * step) + (step / 2);
+            const x = 140 + 85 * Math.cos(Math.PI * (angle - 90) / 180);
+            const y = 140 + 85 * Math.sin(Math.PI * (angle - 90) / 180);
+            const label = document.createElement('div');
+            label.className = 'player-name';
+            label.style.left = x + 'px'; label.style.top = y + 'px';
+            label.innerText = name;
+            document.querySelector('.wheel-outer').appendChild(label);
+        });
+        wheel.style.background = `conic-gradient(${segments.join(', ')})`;
+    }
+
+    function spin() {
+        document.getElementById('announcement').style.display = "none";
+        document.getElementById('spinBtn').disabled = true;
+
+        if (remainingPlayers.length === 0) remainingPlayers = [...players];
+        const randomTarget = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
+        const
